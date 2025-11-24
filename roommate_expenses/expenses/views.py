@@ -13,24 +13,109 @@ from django.urls import reverse
 from django.utils import timezone
 import uuid
 from datetime import timedelta
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import socket
 
-def register(request):
+def send_verification_email_smtp(to_email, username, verification_url):
+    """Send verification email using smtplib with timeout control"""
+    try:
+        # Get email settings from Django settings
+        email_host = settings.EMAIL_HOST
+        email_port = settings.EMAIL_PORT
+        email_user = settings.EMAIL_HOST_USER
+        email_password = settings.EMAIL_HOST_PASSWORD
+        from_email = settings.DEFAULT_FROM_EMAIL
+        
+        # Create message
+        msg = MIMEMultipart('alternative')
+        msg['Subject'] = 'Verify your email - Roommate Expenses'
+        msg['From'] = from_email
+        msg['To'] = to_email
+        
+        # Email body
+        text = f"""
+Hello {username},
+
+Thank you for registering! Please verify your email address by clicking the link below:
+
+{verification_url}
+
+This link will expire in 10 minutes.
+
+If you didn't create this account, please ignore this email.
+
+Best regards,
+Roommate Expenses Team
+        """
+        
+        html = f"""
+<html>
+  <body>
+    <p>Hello {username},</p>
+    <p>Thank you for registering! Please verify your email address by clicking the button below:</p>
+    <p><a href="{verification_url}" style="background-color: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">Verify Email</a></p>
+    <p>Or copy this link: {verification_url}</p>
+    <p>This link will expire in 10 minutes.</p>
+    <p>If you didn't create this account, please ignore this email.</p>
+    <p>Best regards,<br>Roommate Expenses Team</p>
+  </body>
+</html>
+        """
+        
+        part1 = MIMEText(text, 'plain')
+        part2 = MIMEText(html, 'html')
+        msg.attach(part1)
+        msg.attach(part2)
+        
+        # Set socket timeout to 5 seconds
+        socket.setdefaulttimeout(5)
+        
+        # Connect and send email with timeout
+        with smtplib.SMTP(email_host, email_port, timeout=5) as server:
+            server.starttls()
+            server.login(email_user, email_password)
+def resend_verification(request):
     if request.method == 'POST':
-        form = UserRegistrationForm(request.POST)
-        if form.is_valid():
-            try:
-                # Create user and activate immediately (skip email verification for now)
-                user = form.save(commit=False)
-                user.is_active = True  # Activate immediately
-                user.save()
-                
-                # Create user profile
-                user_profile, created = UserProfile.objects.get_or_create(user=user)
-                user_profile.email_verified = True  # Mark as verified
-                user_profile.save()
-                
-                messages.success(request, f"Account created successfully! You can now log in.")
-                return redirect('login')
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email, is_active=False)
+            user_profile = user.profile
+            
+            # Generate new token
+            verification_token = str(uuid.uuid4())
+            user_profile.verification_token = verification_token
+            user_profile.token_created_at = timezone.now()
+            user_profile.save()
+            
+            # Generate verification URL
+            verification_url = request.build_absolute_uri(
+                reverse('verify_email', kwargs={'token': verification_token})
+            )
+            
+            # Send verification email using smtplib
+            success, error_msg = send_verification_email_smtp(
+                user.email,
+                user.username,
+                verification_url
+            )
+            
+            if success:
+                messages.success(request, f"Verification email sent to {email}. Please check your inbox.")
+                return redirect('verification_sent')
+            else:
+                messages.error(request, f"Failed to send email: {error_msg}")
+            
+        except User.DoesNotExist:
+            messages.error(request, "No unverified account found with this email.")
+        except Exception as e:
+            messages.error(request, "Error sending verification email. Please try again.")
+    
+    return render(request, 'expenses/resend_verification.html')
+                    user_profile.save()
+                    messages.warning(request, f"Account created! Email verification unavailable, but you can log in now.")
+                    return redirect('login')
                     
             except IntegrityError:
                 messages.error(request, "A user profile already exists for this user.")
