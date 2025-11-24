@@ -19,65 +19,25 @@ def register(request):
         form = UserRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                # Create user but don't activate yet
+                # Create user and activate immediately (skip email verification for now)
                 user = form.save(commit=False)
-                user.is_active = False  # Deactivate until email verification
+                user.is_active = True  # Activate immediately
                 user.save()
                 
-                # Create user profile with verification token
+                # Create user profile
                 user_profile, created = UserProfile.objects.get_or_create(user=user)
-                verification_token = str(uuid.uuid4())
-                user_profile.verification_token = verification_token
-                user_profile.token_created_at = timezone.now()
-                user_profile.email_verified = False
+                user_profile.email_verified = True  # Mark as verified
                 user_profile.save()
                 
-                # Send verification email
-                verification_url = request.build_absolute_uri(
-                    reverse('verify_email', kwargs={'token': verification_token})
-                )
-                
-                subject = 'Verify your email - Roommate Expenses'
-                message = f'''
-Hello {user.username},
-
-Thank you for registering! Please verify your email address by clicking the link below:
-
-{verification_url}
-
-This link will expire in 10 minutes.
-
-If you didn't create this account, please ignore this email.
-
-Best regards,
-Roommate Expenses Team
-                '''
-                
-                try:
-                    send_mail(
-                        subject,
-                        message,
-                        settings.DEFAULT_FROM_EMAIL,
-                        [user.email],
-                        fail_silently=False,
-                    )
-                    messages.success(request, f"Account created! Please check your email ({user.email}) to verify your account.")
-                    return redirect('verification_sent')
-                except Exception as email_error:
-                    # If email fails, activate user anyway (for production without email configured)
-                    user.is_active = True
-                    user.save()
-                    user_profile.email_verified = True
-                    user_profile.save()
-                    messages.warning(request, f"Account created but email verification is unavailable. You can log in now.")
-                    return redirect('login')
+                messages.success(request, f"Account created successfully! You can now log in.")
+                return redirect('login')
                     
             except IntegrityError:
                 messages.error(request, "A user profile already exists for this user.")
                 return redirect('login')
             except Exception as e:
                 messages.error(request, f"Error creating account. Please try again.")
-                if user.id:
+                if user and user.id:
                     user.delete()  # Clean up if registration fails
                 return redirect('register')
     else:
