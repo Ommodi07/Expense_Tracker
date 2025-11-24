@@ -53,23 +53,32 @@ Best regards,
 Roommate Expenses Team
                 '''
                 
-                send_mail(
-                    subject,
-                    message,
-                    settings.DEFAULT_FROM_EMAIL,
-                    [user.email],
-                    fail_silently=False,
-                )
-                
-                messages.success(request, f"Account created! Please check your email ({user.email}) to verify your account.")
-                return redirect('verification_sent')
+                try:
+                    send_mail(
+                        subject,
+                        message,
+                        settings.DEFAULT_FROM_EMAIL,
+                        [user.email],
+                        fail_silently=False,
+                    )
+                    messages.success(request, f"Account created! Please check your email ({user.email}) to verify your account.")
+                    return redirect('verification_sent')
+                except Exception as email_error:
+                    # If email fails, activate user anyway (for production without email configured)
+                    user.is_active = True
+                    user.save()
+                    user_profile.email_verified = True
+                    user_profile.save()
+                    messages.warning(request, f"Account created but email verification is unavailable. You can log in now.")
+                    return redirect('login')
+                    
             except IntegrityError:
                 messages.error(request, "A user profile already exists for this user.")
                 return redirect('login')
             except Exception as e:
-                messages.error(request, f"Error sending verification email. Please try again.")
+                messages.error(request, f"Error creating account. Please try again.")
                 if user.id:
-                    user.delete()  # Clean up if email fails
+                    user.delete()  # Clean up if registration fails
                 return redirect('register')
     else:
         form = UserRegistrationForm()
