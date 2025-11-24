@@ -76,43 +76,55 @@ Roommate Expenses Team
         with smtplib.SMTP(email_host, email_port, timeout=5) as server:
             server.starttls()
             server.login(email_user, email_password)
-def resend_verification(request):
+            server.sendmail(from_email, to_email, msg.as_string())
+        
+        return True, None
+    except socket.timeout:
+        return False, "Email server timeout. Please try again."
+    except smtplib.SMTPAuthenticationError:
+        return False, "Email authentication failed. Please contact support."
+    except Exception as e:
+        return False, f"Email error: {str(e)}"
+
+def register(request):
     if request.method == 'POST':
-        email = request.POST.get('email')
-        try:
-            user = User.objects.get(email=email, is_active=False)
-            user_profile = user.profile
-            
-            # Generate new token
-            verification_token = str(uuid.uuid4())
-            user_profile.verification_token = verification_token
-            user_profile.token_created_at = timezone.now()
-            user_profile.save()
-            
-            # Generate verification URL
-            verification_url = request.build_absolute_uri(
-                reverse('verify_email', kwargs={'token': verification_token})
-            )
-            
-            # Send verification email using smtplib
-            success, error_msg = send_verification_email_smtp(
-                user.email,
-                user.username,
-                verification_url
-            )
-            
-            if success:
-                messages.success(request, f"Verification email sent to {email}. Please check your inbox.")
-                return redirect('verification_sent')
-            else:
-                messages.error(request, f"Failed to send email: {error_msg}")
-            
-        except User.DoesNotExist:
-            messages.error(request, "No unverified account found with this email.")
-        except Exception as e:
-            messages.error(request, "Error sending verification email. Please try again.")
-    
-    return render(request, 'expenses/resend_verification.html')
+        form = UserRegistrationForm(request.POST)
+        if form.is_valid():
+            user = None
+            try:
+                # Create user but don't activate yet
+                user = form.save(commit=False)
+                user.is_active = False  # Deactivate until email verification
+                user.save()
+                
+                # Create user profile with verification token
+                user_profile, created = UserProfile.objects.get_or_create(user=user)
+                verification_token = str(uuid.uuid4())
+                user_profile.verification_token = verification_token
+                user_profile.token_created_at = timezone.now()
+                user_profile.email_verified = False
+                user_profile.save()
+                
+                # Generate verification URL
+                verification_url = request.build_absolute_uri(
+                    reverse('verify_email', kwargs={'token': verification_token})
+                )
+                
+                # Send verification email using smtplib
+                success, error_msg = send_verification_email_smtp(
+                    user.email,
+                    user.username,
+                    verification_url
+                )
+                
+                if success:
+                    messages.success(request, f"Account created! Please check your email ({user.email}) to verify your account.")
+                    return redirect('verification_sent')
+                else:
+                    # If email fails, activate user anyway so they can use the app
+                    user.is_active = True
+                    user.save()
+                    user_profile.email_verified = True
                     user_profile.save()
                     messages.warning(request, f"Account created! Email verification unavailable, but you can log in now.")
                     return redirect('login')
@@ -170,35 +182,23 @@ def resend_verification(request):
             user_profile.token_created_at = timezone.now()
             user_profile.save()
             
-            # Send verification email
+            # Generate verification URL
             verification_url = request.build_absolute_uri(
                 reverse('verify_email', kwargs={'token': verification_token})
             )
             
-            subject = 'Verify your email - Roommate Expenses'
-            message = f'''
-Hello {user.username},
-
-Here is your new verification link:
-
-{verification_url}
-
-This link will expire in 10 minutes.
-
-Best regards,
-Roommate Expenses Team
-            '''
-            
-            send_mail(
-                subject,
-                message,
-                settings.DEFAULT_FROM_EMAIL,
-                [user.email],
-                fail_silently=False,
+            # Send verification email using smtplib
+            success, error_msg = send_verification_email_smtp(
+                user.email,
+                user.username,
+                verification_url
             )
             
-            messages.success(request, f"Verification email sent to {email}. Please check your inbox.")
-            return redirect('verification_sent')
+            if success:
+                messages.success(request, f"Verification email sent to {email}. Please check your inbox.")
+                return redirect('verification_sent')
+            else:
+                messages.error(request, f"Failed to send email: {error_msg}")
             
         except User.DoesNotExist:
             messages.error(request, "No unverified account found with this email.")
