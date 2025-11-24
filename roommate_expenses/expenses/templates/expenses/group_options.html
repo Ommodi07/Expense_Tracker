@@ -1,0 +1,59 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Group Options | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10 col-md-11">
+        <div class="text-center mb-5 animate__animated animate__fadeInDown">
+            <h1 class="fw-bold mb-3">
+                <i class="fas fa-users" style="color: var(--primary-color);"></i>
+                Choose Your Option
+            </h1>
+            <p class="lead text-muted">Get started by creating a new group or joining an existing one</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="card h-100 animate__animated animate__fadeInLeft" style="cursor: pointer; transition: all 0.3s ease;" onclick="window.location.href='{% url 'create_group' %}'">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, var(--primary-color), var(--secondary-color)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 8px 20px rgba(99, 102, 241, 0.3);">
+                                <i class="fas fa-users-cog fa-3x" style="color: white;"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3">Create New Group</h3>
+                        <p class="text-muted mb-4">Start fresh by creating a new expense sharing group. You'll get a unique code to share with your roommates.</p>
+                        <a href="{% url 'create_group' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus-circle"></i> Create Group
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card h-100 animate__animated animate__fadeInRight" style="cursor: pointer; transition: all 0.3s ease;" onclick="window.location.href='{% url 'join_group' %}'">
+                    <div class="card-body text-center p-5">
+                        <div class="mb-4">
+                            <div style="width: 100px; height: 100px; background: linear-gradient(135deg, var(--success-color), #059669); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);">
+                                <i class="fas fa-user-plus fa-3x" style="color: white;"></i>
+                            </div>
+                        </div>
+                        <h3 class="fw-bold mb-3">Join Existing Group</h3>
+                        <p class="text-muted mb-4">Have a group code? Join your roommate's existing group to start tracking expenses together.</p>
+                        <a href="{% url 'join_group' %}" class="btn btn-success btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Join Group
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.card:hover {
+    transform: translateY(-10px) !important;
+}
+</style>
+{% endblock %}

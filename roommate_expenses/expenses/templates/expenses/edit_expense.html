@@ -1,0 +1,45 @@
+{% extends "expenses/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Expense | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--warning-color), #d97706);">
+                <i class="fas fa-edit"></i>
+                <h2 class="mb-0 d-inline">Edit Expense</h2>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert" style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(217, 119, 6, 0.1)); border: none;">
+                    <i class="fas fa-exclamation-triangle" style="color: var(--warning-color);"></i>
+                    <strong>Note:</strong> Changes will affect all members of this expense.
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-warning btn-lg">
+                            <i class="fas fa-save"></i> Update Expense
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="divider" style="margin: 1.5rem 0; display: flex; align-items: center;">
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                    <span style="padding: 0 1rem; color: var(--gray-text); font-size: 0.875rem;">or</span>
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'expense_detail' expense.id %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-times"></i> Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

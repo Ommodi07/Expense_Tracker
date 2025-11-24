@@ -1,0 +1,48 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Leave Group | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--danger-color), #dc2626);">
+                <i class="fas fa-sign-out-alt"></i>
+                <h2 class="mb-0 d-inline">Leave Group</h2>
+            </div>
+            <div class="card-body text-center p-4 p-md-5">
+                <i class="fas fa-user-times fa-4x mb-4" style="color: var(--danger-color); opacity: 0.7;"></i>
+                
+                <h4 class="mb-3">Are you sure?</h4>
+                <p class="lead mb-4">You are about to leave your current group.</p>
+                
+                <div class="alert alert-warning" style="border: none;">
+                    <div class="d-flex align-items-start">
+                        <i class="fas fa-info-circle mt-1 me-2" style="font-size: 1.25rem;"></i>
+                        <div class="text-start">
+                            <strong>Important Information:</strong>
+                            <ul class="mb-0 mt-2">
+                                <li>You won't see the group's expenses anymore</li>
+                                <li>Your expense data will remain for other members</li>
+                                <li>You can join another group or create a new one</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-sign-out-alt"></i> Yes, Leave Group
+                        </button>
+                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

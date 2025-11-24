@@ -1,0 +1,104 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Expense Details | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--info-color), #0891b2);">
+                <i class="fas fa-file-invoice-dollar"></i>
+                <h2 class="mb-0 d-inline">Expense Details</h2>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-receipt fa-3x mb-3" style="color: var(--info-color); opacity: 0.7;"></i>
+                    <h3 class="fw-bold mb-2">{{ expense.title }}</h3>
+                </div>
+                
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(8, 145, 178, 0.1)); border: none;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-dollar-sign mb-2" style="color: var(--info-color); font-size: 1.5rem;"></i>
+                                <p class="text-muted mb-1">Total Amount</p>
+                                <h4 class="fw-bold mb-0" style="color: var(--info-color);">${{ expense.amount }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1), rgba(8, 145, 178, 0.1)); border: none;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-calendar-alt mb-2" style="color: var(--info-color); font-size: 1.5rem;"></i>
+                                <p class="text-muted mb-1">Date</p>
+                                <h5 class="fw-bold mb-0">{{ expense.date|date:"M d, Y" }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1)); border: none;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-user-check mb-2" style="color: var(--success-color); font-size: 1.5rem;"></i>
+                                <p class="text-muted mb-1">Paid By</p>
+                                <h5 class="fw-bold mb-0">{{ expense.paid_by.username }}</h5>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: none;">
+                            <div class="card-body text-center">
+                                <i class="fas fa-divide mb-2" style="color: var(--primary-color); font-size: 1.5rem;"></i>
+                                <p class="text-muted mb-1">Per Person</p>
+                                <h4 class="fw-bold mb-0" style="color: var(--primary-color);">${{ expense.get_split_amount|floatformat:2 }}</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <h4 class="mb-3">
+                    <i class="fas fa-users"></i> Shared Among:
+                </h4>
+                <ul class="list-group mb-4">
+                    {% for share in shares %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <i class="fas fa-user-circle" style="color: var(--primary-color);"></i>
+                                <strong>{{ share.username }}</strong>
+                            </div>
+                            <div>
+                                {% if share.is_payer %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Paid
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-money-bill-wave"></i> Owes ${{ share.amount|floatformat:2 }}
+                                    </span>
+                                {% endif %}
+                                
+                                {% if share.username == user.username %}
+                                    <span class="badge bg-primary ms-1">You</span>
+                                {% endif %}
+                            </div>
+                        </li>
+                    {% endfor %}
+                </ul>
+                
+                <div class="d-grid gap-2 d-md-block text-center">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary mb-2 mb-md-0">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                    {% if is_creator %}
+                        <a href="{% url 'edit_expense' expense.id %}" class="btn btn-warning mb-2 mb-md-0">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <a href="{% url 'delete_expense' expense.id %}" class="btn btn-danger mb-2 mb-md-0">
+                            <i class="fas fa-trash"></i> Delete
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

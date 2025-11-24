@@ -1,0 +1,45 @@
+{% extends "expenses/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Add Expense | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-md-10">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <i class="fas fa-plus-circle"></i>
+                <h2 class="mb-0 d-inline">Add New Expense</h2>
+            </div>
+            <div class="card-body p-4">
+                <div class="alert" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1)); border: none;">
+                    <i class="fas fa-info-circle" style="color: var(--primary-color);"></i>
+                    <strong>Tip:</strong> Split expenses fairly with all group members.
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus"></i> Add Expense
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="divider" style="margin: 1.5rem 0; display: flex; align-items: center;">
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                    <span style="padding: 0 1rem; color: var(--gray-text); font-size: 0.875rem;">or</span>
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Back to Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

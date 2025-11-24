@@ -1,0 +1,46 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}Delete Expense | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--danger-color), #dc2626);">
+                <i class="fas fa-exclamation-triangle"></i>
+                <h2 class="mb-0 d-inline">Delete Expense</h2>
+            </div>
+            <div class="card-body text-center p-4 p-md-5">
+                <i class="fas fa-trash-alt fa-4x mb-4" style="color: var(--danger-color); opacity: 0.7;"></i>
+                
+                <h4 class="mb-3">Are you sure?</h4>
+                <p class="lead mb-2">You are about to delete:</p>
+                
+                <div class="card mb-4" style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); border: 2px dashed var(--danger-color);">
+                    <div class="card-body">
+                        <h5 class="fw-bold mb-2">{{ expense.title }}</h5>
+                        <h3 class="mb-0" style="color: var(--danger-color);">${{ expense.amount }}</h3>
+                    </div>
+                </div>
+                
+                <div class="alert alert-danger mb-4" style="border: none;">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <strong>Warning:</strong> This action cannot be undone!
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-danger btn-lg">
+                            <i class="fas fa-trash"></i> Yes, Delete Expense
+                        </button>
+                        <a href="{% url 'expense_detail' expense.id %}" class="btn btn-outline-secondary btn-lg">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

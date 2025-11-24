@@ -1,0 +1,149 @@
+{% extends "expenses/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Register | Roommate Expenses{% endblock %}
+
+{% block content %}
+<style>
+    .register-container {
+        min-height: calc(100vh - 140px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 0;
+    }
+
+    .auth-card {
+        max-width: 500px;
+        width: 100%;
+    }
+
+    .auth-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--success-color), #059669);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .auth-icon i {
+        font-size: 2.5rem;
+        color: white;
+    }
+
+    .divider {
+        display: flex;
+        align-items: center;
+        text-align: center;
+        margin: 1.5rem 0;
+    }
+
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .divider span {
+        padding: 0 1rem;
+        color: var(--gray-text);
+        font-size: 0.875rem;
+    }
+
+    .features {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .feature-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--gray-text);
+    }
+
+    .feature-item i {
+        color: var(--success-color);
+    }
+
+    @media (max-width: 576px) {
+        .register-container {
+            padding: 1rem;
+        }
+
+        .auth-icon {
+            width: 60px;
+            height: 60px;
+        }
+
+        .auth-icon i {
+            font-size: 2rem;
+        }
+
+        .features {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="register-container">
+    <div class="auth-card">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-body p-4 p-md-5">
+                <div class="auth-icon">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h2 class="text-center fw-bold mb-2">Create Account</h2>
+                <p class="text-center text-muted mb-4">Join and split expenses easily!</p>
+                
+                <div class="features">
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Track expenses</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Split bills</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Manage groups</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Real-time balance</span>
+                    </div>
+                </div>
+                
+                <form method="POST" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-user-plus"></i> Create Account
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="divider">
+                    <span>Already have an account?</span>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'login' %}" class="btn btn-outline-primary w-100">
+                        <i class="fas fa-sign-in-alt"></i> Login Instead
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

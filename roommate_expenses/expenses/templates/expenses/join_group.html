@@ -1,0 +1,45 @@
+{% extends "expenses/base.html" %}
+{% load crispy_forms_tags %}
+
+{% block title %}Join Group | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6 col-md-8">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header" style="background: linear-gradient(135deg, var(--success-color), #059669);">
+                <i class="fas fa-user-plus"></i>
+                <h2 class="mb-0 d-inline">Join Existing Group</h2>
+            </div>
+            <div class="card-body p-4">
+                <div class="text-center mb-4">
+                    <i class="fas fa-link fa-4x" style="color: var(--success-color); opacity: 0.7;"></i>
+                    <p class="text-muted mt-3">Enter the group code shared by your roommate to join their expense group.</p>
+                </div>
+                
+                <form method="POST">
+                    {% csrf_token %}
+                    {{ form|crispy }}
+                    <div class="d-grid gap-2 mt-4">
+                        <button type="submit" class="btn btn-success btn-lg">
+                            <i class="fas fa-sign-in-alt"></i> Join Group
+                        </button>
+                    </div>
+                </form>
+                
+                <div class="divider" style="margin: 1.5rem 0; display: flex; align-items: center;">
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                    <span style="padding: 0 1rem; color: var(--gray-text); font-size: 0.875rem;">or</span>
+                    <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>
+                </div>
+                
+                <div class="text-center">
+                    <a href="{% url 'group_options' %}" class="btn btn-outline-secondary w-100">
+                        <i class="fas fa-arrow-left"></i> Back to Options
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
