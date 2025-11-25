@@ -1,6 +1,6 @@
 {% extends "expenses/base.html" %}
 
-{% block title %}Dashboard | Roommate Expenses{% endblock %}
+{% block title %}Dashboard | Expense Tracker{% endblock %}
 
 {% block content %}
 <style>
@@ -43,7 +43,7 @@
     <div class="card welcome-card animate__animated animate__fadeIn">
         <div class="card-body text-center py-5">
             <i class="fas fa-users fa-4x mb-4" style="color: var(--primary-color);"></i>
-            <h2 class="fw-bold mb-3">Welcome to Roommate Expenses!</h2>
+            <h2 class="fw-bold mb-3">Welcome to Expense Tracker!</h2>
             {% if all_groups %}
                 <p class="lead mb-4">You are a member of {{ all_groups.count }} group(s).</p>
                 <p class="text-muted mb-4">Select a group below to view its expenses:</p>
@@ -56,7 +56,7 @@
                     {% endfor %}
                 </div>
             {% else %}
-                <p class="lead mb-4">Start managing shared expenses with your roommates today.</p>
+                <p class="lead mb-4">Start managing your shared expenses today.</p>
                 <p class="text-muted mb-4">Create a new group or join an existing one to get started.</p>
                 <a href="{% url 'group_options' %}" class="btn btn-primary btn-lg">
                     <i class="fas fa-rocket"></i> Get Started

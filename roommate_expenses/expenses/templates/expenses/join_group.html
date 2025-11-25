@@ -1,7 +1,7 @@
 {% extends "expenses/base.html" %}
 {% load crispy_forms_tags %}
 
-{% block title %}Join Group | Roommate Expenses{% endblock %}
+{% block title %}Join Group | Expense Tracker{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -14,7 +14,7 @@
             <div class="card-body p-4">
                 <div class="text-center mb-4">
                     <i class="fas fa-link fa-4x" style="color: var(--success-color); opacity: 0.7;"></i>
-                    <p class="text-muted mt-3">Enter the group code shared by your roommate to join their expense group.</p>
+                    <p class="text-muted mt-3">Enter the group code to join an expense group.</p>
                 </div>
                 
                 <form method="POST">

@@ -1,6 +1,6 @@
 {% extends "expenses/base.html" %}
 
-{% block title %}Group Options | Roommate Expenses{% endblock %}
+{% block title %}Group Options | Expense Tracker{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -23,7 +23,7 @@
                             </div>
                         </div>
                         <h3 class="fw-bold mb-3">Create New Group</h3>
-                        <p class="text-muted mb-4">Start fresh by creating a new expense sharing group. You'll get a unique code to share with your roommates.</p>
+                        <p class="text-muted mb-4">Start fresh by creating a new expense sharing group. You'll get a unique code to share with members.</p>
                         <a href="{% url 'create_group' %}" class="btn btn-primary btn-lg">
                             <i class="fas fa-plus-circle"></i> Create Group
                         </a>
@@ -40,7 +40,7 @@
                             </div>
                         </div>
                         <h3 class="fw-bold mb-3">Join Existing Group</h3>
-                        <p class="text-muted mb-4">Have a group code? Join your roommate's existing group to start tracking expenses together.</p>
+                        <p class="text-muted mb-4">Have a group code? Join an existing group to start tracking expenses together.</p>
                         <a href="{% url 'join_group' %}" class="btn btn-success btn-lg">
                             <i class="fas fa-sign-in-alt"></i> Join Group
                         </a>
