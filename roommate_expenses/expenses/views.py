@@ -16,20 +16,27 @@ def register(request):
                 # Create user and activate immediately
                 user = form.save()
                 
-                # Create user profile
+                # Ensure user profile exists (signal should create it, but just in case)
                 UserProfile.objects.get_or_create(user=user)
                 
-                # Log the user in automatically
-                login(request, user)
-                
-                messages.success(request, f"Welcome {user.username}! Your account has been created successfully.")
-                return redirect('dashboard')
+                # Authenticate and log the user in
+                user = authenticate(username=user.username, password=form.cleaned_data['password1'])
+                if user:
+                    login(request, user)
+                    messages.success(request, f"Welcome {user.username}! Your account has been created successfully.")
+                    return redirect('dashboard')
+                else:
+                    messages.error(request, "Account created but login failed. Please try logging in manually.")
+                    return redirect('login')
                     
-            except IntegrityError:
+            except IntegrityError as e:
                 messages.error(request, "A user with this username or email already exists.")
                 return redirect('register')
             except Exception as e:
-                messages.error(request, f"Error creating account. Please try again.")
+                # Log the actual error for debugging
+                import logging
+                logging.error(f"Registration error: {str(e)}")
+                messages.error(request, f"Error creating account: {str(e)}")
                 return redirect('register')
     else:
         form = UserRegistrationForm()
@@ -41,6 +48,10 @@ def dashboard(request):
     
     # Get all groups user is member of
     user_groups = request.user.joined_groups.all()
+    
+    # Debug: log the groups
+    import logging
+    logging.info(f"User {request.user.username} has {user_groups.count()} groups: {[g.name for g in user_groups]}")
     
     # Get selected group from session or query parameter
     selected_group_id = request.GET.get('group') or request.session.get('selected_group_id')
@@ -110,15 +121,20 @@ def create_group(request):
     if request.method == 'POST':
         form = GroupCreationForm(request.POST)
         if form.is_valid():
-            group = form.save(commit=False)
-            group.created_by = request.user
-            group.save()
-            
-            # Add creator as first member
-            group.members.add(request.user)
-            
-            messages.success(request, f"Group '{group.name}' created! Share code: {group.code}")
-            return redirect('dashboard')
+            try:
+                group = form.save(commit=False)
+                group.created_by = request.user
+                group.save()  # Must save before adding to ManyToMany
+                
+                # Add creator as first member
+                group.members.add(request.user)
+                
+                messages.success(request, f"Group '{group.name}' created! Share code: {group.code}")
+                return redirect('dashboard')
+            except Exception as e:
+                import logging
+                logging.error(f"Error creating group: {str(e)}")
+                messages.error(request, f"Error creating group: {str(e)}")
     else:
         form = GroupCreationForm()
     

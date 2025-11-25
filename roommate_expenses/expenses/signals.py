@@ -11,14 +11,14 @@ def create_profile(sender, instance, created, **kwargs):
         UserProfile.objects.get_or_create(user=instance)
 
 @receiver(post_save, sender=User)
-def save_profile(sender, instance, **kwargs):
+def save_profile(sender, instance, created, **kwargs):
     """Update UserProfile when User is updated"""
-    if not instance.pk or instance._state.adding:
+    if created:
         # Skip for new users - create_profile signal handles this
         return
     try:
         profile = UserProfile.objects.get(user=instance)
         profile.save()
     except UserProfile.DoesNotExist:
-        # Profile will be created by create_profile signal
-        pass
+        # Create profile if it doesn't exist
+        UserProfile.objects.create(user=instance)
