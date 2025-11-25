@@ -1,0 +1,168 @@
+{% extends "expenses/base.html" %}
+
+{% block title %}My Groups | Roommate Expenses{% endblock %}
+
+{% block content %}
+<div class="row mb-4 animate__animated animate__fadeInDown">
+    <div class="col-12">
+        <h2 class="fw-bold mb-2">
+            <i class="fas fa-layer-group" style="color: var(--primary-color);"></i>
+            My Groups
+        </h2>
+        <p class="text-muted mb-0">
+            <i class="fas fa-info-circle"></i> Manage all your groups in one place
+        </p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card animate__animated animate__fadeInUp">
+            <div class="card-header">
+                <i class="fas fa-users"></i>
+                <h3 class="mb-0 d-inline">Groups You're In</h3>
+                <span class="badge bg-light text-dark float-end">{{ user_groups.count }} group(s)</span>
+            </div>
+            <div class="card-body">
+                {% if user_groups %}
+                    <div class="row g-3">
+                        {% for group in user_groups %}
+                            <div class="col-lg-4 col-md-6 col-sm-12">
+                                <div class="card h-100 border-0" style="background: linear-gradient(135deg, rgba(99, 102, 241, 0.1), rgba(139, 92, 246, 0.1));">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="card-title fw-bold mb-1">
+                                                    <i class="fas fa-users" style="color: var(--primary-color);"></i>
+                                                    {{ group.name }}
+                                                </h5>
+                                                {% if group.created_by == user %}
+                                                    <span class="badge bg-success">
+                                                        <i class="fas fa-crown"></i> Created by you
+                                                    </span>
+                                                {% else %}
+                                                    <span class="badge bg-info">
+                                                        <i class="fas fa-user"></i> Member
+                                                    </span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <p class="mb-2">
+                                                <i class="fas fa-key" style="color: var(--warning-color);"></i>
+                                                <strong>Code:</strong> 
+                                                <code class="bg-white px-2 py-1 rounded">{{ group.code }}</code>
+                                            </p>
+                                            <p class="mb-2">
+                                                <i class="fas fa-user-friends" style="color: var(--info-color);"></i>
+                                                <strong>Members:</strong> {{ group.get_member_count }}
+                                            </p>
+                                            <p class="mb-0 text-muted small">
+                                                <i class="fas fa-calendar"></i>
+                                                Created {{ group.created_at|date:"M d, Y" }}
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'dashboard' %}?group={{ group.id }}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-chart-line"></i> View Dashboard
+                                            </a>
+                                            <a href="{% url 'group_members' group.id %}" class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-users"></i> View Members
+                                            </a>
+                                            {% if group.created_by != user %}
+                                                <a href="{% url 'leave_group' group.id %}" class="btn btn-outline-danger btn-sm">
+                                                    <i class="fas fa-sign-out-alt"></i> Leave Group
+                                                </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-inbox fa-4x mb-3" style="color: var(--gray-text); opacity: 0.5;"></i>
+                        <h5 class="text-muted mb-3">You haven't joined any groups yet</h5>
+                        <a href="{% url 'group_options' %}" class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> Create or Join a Group
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card animate__animated animate__fadeInUp" style="animation-delay: 0.2s;">
+            <div class="card-header">
+                <i class="fas fa-crown"></i>
+                <h3 class="mb-0 d-inline">Groups You Created</h3>
+                <span class="badge bg-light text-dark float-end">{{ created_groups.count }} group(s)</span>
+            </div>
+            <div class="card-body">
+                {% if created_groups %}
+                    <div class="row g-3">
+                        {% for group in created_groups %}
+                            <div class="col-lg-4 col-md-6 col-sm-12">
+                                <div class="card h-100 border-0" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.1));">
+                                    <div class="card-body">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <div>
+                                                <h5 class="card-title fw-bold mb-1">
+                                                    <i class="fas fa-crown" style="color: var(--warning-color);"></i>
+                                                    {{ group.name }}
+                                                </h5>
+                                                <span class="badge bg-success">
+                                                    <i class="fas fa-shield-alt"></i> Owner
+                                                </span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="mb-3">
+                                            <p class="mb-2">
+                                                <i class="fas fa-key" style="color: var(--warning-color);"></i>
+                                                <strong>Code:</strong> 
+                                                <code class="bg-white px-2 py-1 rounded">{{ group.code }}</code>
+                                            </p>
+                                            <p class="mb-2">
+                                                <i class="fas fa-user-friends" style="color: var(--info-color);"></i>
+                                                <strong>Members:</strong> {{ group.get_member_count }}
+                                            </p>
+                                            <p class="mb-0 text-muted small">
+                                                <i class="fas fa-calendar"></i>
+                                                Created {{ group.created_at|date:"M d, Y" }}
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="d-grid gap-2">
+                                            <a href="{% url 'dashboard' %}?group={{ group.id }}" class="btn btn-success btn-sm">
+                                                <i class="fas fa-chart-line"></i> View Dashboard
+                                            </a>
+                                            <a href="{% url 'group_members' group.id %}" class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-users"></i> Manage Members
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-crown fa-4x mb-3" style="color: var(--gray-text); opacity: 0.5;"></i>
+                        <h5 class="text-muted mb-3">You haven't created any groups yet</h5>
+                        <a href="{% url 'create_group' %}" class="btn btn-success">
+                            <i class="fas fa-plus-circle"></i> Create Your First Group
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
