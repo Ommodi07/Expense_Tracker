@@ -3,13 +3,13 @@ from django.db import connection
 
 
 class Command(BaseCommand):
-    help = 'Clear all data from the database and reset schema'
+    help = 'Clear all expenses data from the database'
 
     def handle(self, *args, **options):
-        self.stdout.write('🗑️  Clearing database...')
+        self.stdout.write('🗑️  Clearing expenses tables...')
         
         with connection.cursor() as cursor:
-            # Drop tables in correct order to avoid foreign key constraints
+            # Drop expenses tables in correct order
             tables = [
                 'expenses_expense_shared_among',
                 'expenses_expense',
@@ -21,8 +21,8 @@ class Command(BaseCommand):
             for table in tables:
                 try:
                     cursor.execute(f'DROP TABLE IF EXISTS {table} CASCADE;')
-                    self.stdout.write(f'   Dropped table: {table}')
+                    self.stdout.write(f'   ✓ Dropped: {table}')
                 except Exception as e:
-                    self.stdout.write(self.style.WARNING(f'   Could not drop {table}: {str(e)}'))
+                    self.stdout.write(self.style.WARNING(f'   ✗ Skip: {table} - {str(e)}'))
         
-        self.stdout.write(self.style.SUCCESS('✅ Database tables dropped! Run migrations next.'))
+        self.stdout.write(self.style.SUCCESS('✅ Tables dropped! Migrations will recreate them.'))
