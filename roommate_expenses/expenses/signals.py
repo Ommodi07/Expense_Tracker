@@ -8,9 +8,14 @@ from .models import UserProfile
 def create_profile(sender, instance, created, **kwargs):
     """Create a UserProfile for every new User"""
     if created:
-        UserProfile.objects.create(user=instance)
+        UserProfile.objects.get_or_create(user=instance)
 
 @receiver(post_save, sender=User)
 def save_profile(sender, instance, **kwargs):
     """Update UserProfile when User is updated"""
-    instance.profile.save()
+    try:
+        if hasattr(instance, 'profile'):
+            instance.profile.save()
+    except UserProfile.DoesNotExist:
+        # Create profile if it doesn't exist
+        UserProfile.objects.create(user=instance)
