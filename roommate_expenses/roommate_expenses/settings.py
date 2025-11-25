@@ -94,7 +94,7 @@ WSGI_APPLICATION = 'roommate_expenses.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=config('DATABASE_URL', default=f'sqlite:///{BASE_DIR / "db.sqlite3"}'),
-        conn_max_age=600,
+        conn_max_age=0,  # Don't keep connections open (important for NeonDB free tier)
         conn_health_checks=True,
     )
 }
