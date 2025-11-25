@@ -28,40 +28,29 @@ class UserProfile(models.Model):
         return f"{self.user.username}'s Profile"
     
     def get_balance(self, group):
-        """Calculate user's net balance within a specific group"""
+        """Calculate user's net balance within a specific group based on actual payment status"""
         if not group:
             return 0
         
-        # What the user has paid for others
-        expenses_paid = Expense.objects.filter(
-            paid_by=self.user, 
-            group=group
-        )
+        # What others owe this user (unpaid shares for expenses paid by this user)
+        others_owe = ExpenseShare.objects.filter(
+            expense__paid_by=self.user,
+            expense__group=group,
+            is_paid=False
+        ).exclude(user=self.user).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
         
-        total_paid = 0
-        for expense in expenses_paid:
-            # Count only the portions that others should pay
-            participants = expense.shared_among.count()
-            if participants > 0:
-                # Don't count the user's own share
-                if expense.shared_among.filter(id=self.user.id).exists():
-                    total_paid += expense.amount * (participants - 1) / participants
-                else:
-                    total_paid += expense.amount
+        # What this user owes to others (unpaid shares where this user is the debtor)
+        user_owes = ExpenseShare.objects.filter(
+            user=self.user,
+            expense__group=group,
+            is_paid=False
+        ).exclude(expense__paid_by=self.user).aggregate(
+            total=models.Sum('amount')
+        )['total'] or 0
         
-        # What others have paid for the user
-        user_owes = 0
-        expenses_shared = Expense.objects.filter(
-            shared_among=self.user,
-            group=group
-        ).exclude(paid_by=self.user)
-        
-        for expense in expenses_shared:
-            participants = expense.shared_among.count()
-            if participants > 0:
-                user_owes += expense.amount / participants
-        
-        return total_paid - user_owes
+        return others_owe - user_owes
     
     def get_all_groups(self):
         """Get all groups the user is a member of"""
@@ -88,3 +77,19 @@ class Expense(models.Model):
         if num_people > 0:
             return self.amount / num_people
         return self.amount
+
+class ExpenseShare(models.Model):
+    """Tracks individual payment status for each user's share of an expense"""
+    expense = models.ForeignKey(Expense, on_delete=models.CASCADE, related_name='shares')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='expense_shares')
+    amount = models.DecimalField(max_digits=10, decimal_places=2)
+    is_paid = models.BooleanField(default=False)
+    paid_at = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('expense', 'user')
+        ordering = ['user__username']
+    
+    def __str__(self):
+        status = "Paid" if self.is_paid else "Unpaid"
+        return f"{self.user.username} - ${self.amount} ({status})"

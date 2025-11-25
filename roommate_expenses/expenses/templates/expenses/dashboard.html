@@ -230,7 +230,27 @@
                                                 <span class="badge bg-primary">You</span>
                                             {% endif %}
                                         </td>
-                                        <td>{{ expense.date|date:"M d, Y" }}</td>
+                                        <td>
+                                            {{ expense.date|date:"M d, Y" }}
+                                            <br>
+                                            {% if expense.total_count > 0 %}
+                                                <small>
+                                                    {% if expense.paid_count == expense.total_count %}
+                                                        <span class="badge bg-success">
+                                                            <i class="fas fa-check-circle"></i> All Paid ({{ expense.paid_count }}/{{ expense.total_count }})
+                                                        </span>
+                                                    {% elif expense.paid_count == 0 %}
+                                                        <span class="badge bg-danger">
+                                                            <i class="fas fa-times-circle"></i> None Paid (0/{{ expense.total_count }})
+                                                        </span>
+                                                    {% else %}
+                                                        <span class="badge bg-warning text-dark">
+                                                            <i class="fas fa-clock"></i> {{ expense.paid_count }}/{{ expense.total_count }} Paid
+                                                        </span>
+                                                    {% endif %}
+                                                </small>
+                                            {% endif %}
+                                        </td>
                                         <td class="text-center">
                                             <div class="btn-group" role="group">
                                                 <a href="{% url 'expense_detail' expense.id %}" class="btn btn-sm btn-outline-primary" title="View Details">

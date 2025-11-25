@@ -2,11 +2,14 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.db.models import Q
+from django.db.models import Q, F, Sum
+from django.db import models
 from .forms import UserRegistrationForm, GroupCreationForm, GroupJoinForm, ExpenseForm
-from .models import Group, UserProfile, Expense
+from .models import Group, UserProfile, Expense, ExpenseShare
 from django.contrib.auth.models import User
 from django.db import IntegrityError
+from django.utils import timezone
+from django.http import JsonResponse
 
 def register(request):
     if request.method == 'POST':
@@ -81,7 +84,16 @@ def dashboard(request):
     
     if selected_group:
         # Get all expenses for the selected group
-        group_expenses = Expense.objects.filter(group=selected_group)
+        group_expenses = Expense.objects.filter(group=selected_group).prefetch_related('shares')
+        
+        # Add payment statistics to each expense
+        expenses_with_stats = []
+        for expense in group_expenses:
+            total_shares = expense.shares.count()
+            paid_shares = expense.shares.filter(is_paid=True).count()
+            expense.paid_count = paid_shares
+            expense.total_count = total_shares
+            expenses_with_stats.append(expense)
         
         # Get balances for all group members
         group_members = selected_group.members.all()
@@ -90,22 +102,23 @@ def dashboard(request):
             member_profile, _ = UserProfile.objects.get_or_create(user=member)
             member_balances[member.username] = member_profile.get_balance(selected_group)
         
-        # Calculate who owes whom
+        # Calculate who owes whom (only unpaid shares)
         debts = []
-        for expense in group_expenses:
-            per_person = expense.get_split_amount()
-            
-            for person in expense.shared_among.all():
-                if person != expense.paid_by:
-                    debts.append({
-                        'from_user': person.username,
-                        'to_user': expense.paid_by.username,
-                        'amount': per_person,
-                        'expense': expense.title
-                    })
+        unpaid_shares = ExpenseShare.objects.filter(
+            expense__group=selected_group,
+            is_paid=False
+        ).exclude(user=F('expense__paid_by')).select_related('user', 'expense')
+        
+        for share in unpaid_shares:
+            debts.append({
+                'from_user': share.user.username,
+                'to_user': share.expense.paid_by.username,
+                'amount': share.amount,
+                'expense': share.expense.title
+            })
         
         context.update({
-            'expenses': group_expenses,
+            'expenses': expenses_with_stats,
             'member_balances': member_balances,
             'debts': debts,
         })
@@ -209,19 +222,12 @@ def expense_detail(request, pk):
         messages.error(request, "You don't have permission to view this expense.")
         return redirect('dashboard')
     
-    # Calculate individual shares
-    per_person = expense.get_split_amount()
-    shares = []
-    for person in expense.shared_among.all():
-        shares.append({
-            'username': person.username,
-            'amount': per_person,
-            'is_payer': person == expense.paid_by
-        })
+    # Get ExpenseShare records for detailed payment status
+    expense_shares = expense.shares.all()
     
     context = {
         'expense': expense,
-        'shares': shares,
+        'expense_shares': expense_shares,
         'is_creator': expense.paid_by == request.user
     }
     return render(request, 'expenses/expense_detail.html', context)
@@ -325,3 +331,29 @@ def manage_groups(request):
         'created_groups': created_groups,
     }
     return render(request, 'expenses/manage_groups.html', context)
+
+@login_required
+def toggle_payment_status(request, share_id):
+    """Toggle payment status for an expense share"""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    try:
+        share = get_object_or_404(ExpenseShare, pk=share_id)
+        
+        # Ensure the user is a member of the expense's group
+        if request.user not in share.expense.group.members.all():
+            return JsonResponse({'error': 'Permission denied'}, status=403)
+        
+        # Toggle the payment status
+        share.is_paid = not share.is_paid
+        share.paid_at = timezone.now() if share.is_paid else None
+        share.save()
+        
+        return JsonResponse({
+            'success': True,
+            'is_paid': share.is_paid,
+            'username': share.user.username
+        })
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
