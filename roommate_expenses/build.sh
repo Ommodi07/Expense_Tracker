@@ -11,6 +11,7 @@ python manage.py cleardb || echo "No tables to clear"
 
 echo "🔄 Running migrations..."
 python manage.py makemigrations
+python manage.py migrate --fake-initial
 python manage.py migrate --run-syncdb
 
 echo "📁 Collecting static files..."
