@@ -58,6 +58,6 @@ class ExpenseForm(forms.ModelForm):
         super(ExpenseForm, self).__init__(*args, **kwargs)
         if group:
             # Limit user choices to the current group members
-            group_members = User.objects.filter(profile__group=group)
+            group_members = group.members.all()
             self.fields['paid_by'].queryset = group_members
             self.fields['shared_among'].queryset = group_members
