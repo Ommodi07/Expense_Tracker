@@ -6,6 +6,8 @@ import uuid
 class Group(models.Model):
     name = models.CharField(max_length=100)
     code = models.CharField(max_length=20, unique=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='created_groups')
+    members = models.ManyToManyField(User, related_name='joined_groups', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
@@ -15,26 +17,25 @@ class Group(models.Model):
         if not self.code:
             self.code = str(uuid.uuid4())[:8].upper()
         super().save(*args, **kwargs)
+    
+    def get_member_count(self):
+        return self.members.count()
 
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    group = models.ForeignKey(Group, on_delete=models.SET_NULL, null=True, blank=True, related_name='members')
-    email_verified = models.BooleanField(default=False)
-    verification_token = models.CharField(max_length=100, blank=True, null=True)
-    token_created_at = models.DateTimeField(blank=True, null=True)
     
     def __str__(self):
         return f"{self.user.username}'s Profile"
     
-    def get_balance(self):
-        """Calculate user's net balance within their group"""
-        if not self.group:
+    def get_balance(self, group):
+        """Calculate user's net balance within a specific group"""
+        if not group:
             return 0
         
         # What the user has paid for others
         expenses_paid = Expense.objects.filter(
             paid_by=self.user, 
-            group=self.group
+            group=group
         )
         
         total_paid = 0
@@ -52,7 +53,7 @@ class UserProfile(models.Model):
         user_owes = 0
         expenses_shared = Expense.objects.filter(
             shared_among=self.user,
-            group=self.group
+            group=group
         ).exclude(paid_by=self.user)
         
         for expense in expenses_shared:
@@ -61,6 +62,10 @@ class UserProfile(models.Model):
                 user_owes += expense.amount / participants
         
         return total_paid - user_owes
+    
+    def get_all_groups(self):
+        """Get all groups the user is a member of"""
+        return self.user.joined_groups.all()
 
 class Expense(models.Model):
     title = models.CharField(max_length=200)
