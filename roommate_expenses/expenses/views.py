@@ -9,7 +9,15 @@ from .models import Group, UserProfile, Expense, ExpenseShare
 from django.contrib.auth.models import User
 from django.db import IntegrityError
 from django.utils import timezone
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle, PageBreak
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.lib.enums import TA_CENTER, TA_LEFT, TA_RIGHT
+from datetime import datetime
+from decimal import Decimal
 
 def register(request):
     if request.method == 'POST':
@@ -357,3 +365,227 @@ def toggle_payment_status(request, share_id):
         })
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@login_required
+def download_group_report(request, group_id):
+    """Generate and download a PDF report for a group showing individual expenses and totals"""
+    try:
+        group = get_object_or_404(Group, id=group_id)
+        
+        # Ensure the user is a member of the group
+        if request.user not in group.members.all():
+            messages.error(request, "You don't have permission to download this report.")
+            return redirect('dashboard')
+        
+        # Create the HttpResponse object with the appropriate PDF headers
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{group.name}_expense_report_{datetime.now().strftime("%Y%m%d")}.pdf"'
+        
+        # Create the PDF document
+        doc = SimpleDocTemplate(response, pagesize=A4,
+                              rightMargin=72, leftMargin=72,
+                              topMargin=72, bottomMargin=18)
+        
+        # Container for the 'Flowable' objects
+        story = []
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=18,
+            spaceAfter=30,
+            alignment=TA_CENTER,
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.darkblue,
+        )
+        
+        # Title
+        title = Paragraph(f"Expense Report - {group.name}", title_style)
+        story.append(title)
+        
+        # Report info
+        report_info = f"Generated on: {datetime.now().strftime('%B %d, %Y at %I:%M %p')}<br/>"
+        report_info += f"Group Code: {group.code}<br/>"
+        report_info += f"Total Members: {group.members.count()}"
+        
+        info_para = Paragraph(report_info, styles['Normal'])
+        story.append(info_para)
+        story.append(Spacer(1, 20))
+        
+        # Get all expenses for the group
+        expenses = Expense.objects.filter(group=group).order_by('-created_at')
+        group_members = group.members.all()
+        
+        # Calculate user statistics
+        user_stats = {}
+        for member in group_members:
+            user_stats[member] = {
+                'total_paid': Decimal('0.00'),
+                'total_owed': Decimal('0.00'),
+                'expenses_paid': [],
+                'expenses_shared': []
+            }
+        
+        total_group_expenses = Decimal('0.00')
+        
+        # Process each expense
+        for expense in expenses:
+            total_group_expenses += expense.amount
+            
+            # Add to the person who paid
+            if expense.paid_by in user_stats:
+                user_stats[expense.paid_by]['total_paid'] += expense.amount
+                user_stats[expense.paid_by]['expenses_paid'].append({
+                    'title': expense.title,
+                    'amount': expense.amount,
+                    'date': expense.date
+                })
+            
+            # Calculate shares for each member
+            split_amount = expense.get_split_amount()
+            for member in expense.shared_among.all():
+                if member in user_stats:
+                    user_stats[member]['total_owed'] += split_amount
+                    user_stats[member]['expenses_shared'].append({
+                        'title': expense.title,
+                        'amount': split_amount,
+                        'date': expense.date,
+                        'paid_by': expense.paid_by.username
+                    })
+        
+        # Summary Section
+        summary_heading = Paragraph("Summary", heading_style)
+        story.append(summary_heading)
+        
+        summary_data = [['Member', 'Total Paid', 'Total Share', 'Net Balance']]
+        for member in group_members:
+            stats = user_stats[member]
+            net_balance = stats['total_paid'] - stats['total_owed']
+            balance_str = f"${net_balance:.2f}"
+            if net_balance > 0:
+                balance_str = f"+{balance_str}"
+            
+            summary_data.append([
+                member.username,
+                f"${stats['total_paid']:.2f}",
+                f"${stats['total_owed']:.2f}",
+                balance_str
+            ])
+        
+        # Add total row
+        summary_data.append(['TOTAL', f"${total_group_expenses:.2f}", f"${total_group_expenses:.2f}", "$0.00"])
+        
+        summary_table = Table(summary_data)
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -2), colors.beige),
+            ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black)
+        ]))
+        
+        story.append(summary_table)
+        story.append(Spacer(1, 30))
+        
+        # Detailed breakdown for each member
+        for member in group_members:
+            stats = user_stats[member]
+            
+            # Member heading
+            member_heading = Paragraph(f"Detailed Report - {member.username}", heading_style)
+            story.append(member_heading)
+            
+            # Expenses paid by this member
+            if stats['expenses_paid']:
+                paid_heading = Paragraph("Expenses Paid:", styles['Heading3'])
+                story.append(paid_heading)
+                
+                paid_data = [['Date', 'Description', 'Amount']]
+                for expense in stats['expenses_paid']:
+                    paid_data.append([
+                        expense['date'].strftime('%m/%d/%Y'),
+                        expense['title'],
+                        f"${expense['amount']:.2f}"
+                    ])
+                
+                paid_table = Table(paid_data, colWidths=[1*inch, 3*inch, 1*inch])
+                paid_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightblue),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),  # Right align amounts
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                
+                story.append(paid_table)
+                story.append(Spacer(1, 12))
+            
+            # Expenses this member owes for
+            if stats['expenses_shared']:
+                shared_heading = Paragraph("Share of Expenses:", styles['Heading3'])
+                story.append(shared_heading)
+                
+                shared_data = [['Date', 'Description', 'Paid By', 'Your Share']]
+                for expense in stats['expenses_shared']:
+                    shared_data.append([
+                        expense['date'].strftime('%m/%d/%Y'),
+                        expense['title'],
+                        expense['paid_by'],
+                        f"${expense['amount']:.2f}"
+                    ])
+                
+                shared_table = Table(shared_data, colWidths=[0.8*inch, 2.5*inch, 1*inch, 0.8*inch])
+                shared_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.lightgreen),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.black),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('ALIGN', (-1, 0), (-1, -1), 'RIGHT'),  # Right align amounts
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 9),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.black),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                
+                story.append(shared_table)
+            
+            # Member totals
+            totals_text = f"""
+            <b>Total Paid:</b> ${stats['total_paid']:.2f}<br/>
+            <b>Total Share:</b> ${stats['total_owed']:.2f}<br/>
+            <b>Net Balance:</b> ${stats['total_paid'] - stats['total_owed']:.2f}
+            """
+            
+            totals_para = Paragraph(totals_text, styles['Normal'])
+            story.append(totals_para)
+            
+            # Add page break except for last member
+            if member != group_members.last():
+                story.append(PageBreak())
+        
+        # Build PDF
+        doc.build(story)
+        
+        return response
+        
+    except Group.DoesNotExist:
+        messages.error(request, "Group not found.")
+        return redirect('dashboard')
+    except Exception as e:
+        messages.error(request, f"Error generating report: {str(e)}")
+        return redirect('dashboard')

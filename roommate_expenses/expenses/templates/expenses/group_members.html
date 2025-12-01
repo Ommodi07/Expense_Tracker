@@ -68,6 +68,9 @@
                     <a href="{% url 'dashboard' %}" class="btn btn-outline-primary">
                         <i class="fas fa-arrow-left"></i> Back to Dashboard
                     </a>
+                    <a href="{% url 'download_group_report' group.id %}" class="btn btn-success">
+                        <i class="fas fa-download"></i> Download Report
+                    </a>
                     {% if group.created_by != user %}
                         <a href="{% url 'leave_group' group.id %}" class="btn btn-outline-danger">
                             <i class="fas fa-sign-out-alt"></i> Leave Group

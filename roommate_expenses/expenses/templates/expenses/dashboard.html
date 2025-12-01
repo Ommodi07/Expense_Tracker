@@ -76,9 +76,14 @@
             </p>
         </div>
         <div class="col-lg-4 col-md-5 text-md-end">
-            <a href="{% url 'add_expense' %}" class="btn btn-primary w-100 w-md-auto">
-                <i class="fas fa-plus-circle"></i> Add New Expense
-            </a>
+            <div class="d-flex flex-column flex-md-row gap-2">
+                <a href="{% url 'download_group_report' selected_group.id %}" class="btn btn-outline-success">
+                    <i class="fas fa-download"></i> Download Report
+                </a>
+                <a href="{% url 'add_expense' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle"></i> Add Expense
+                </a>
+            </div>
         </div>
     </div>
 

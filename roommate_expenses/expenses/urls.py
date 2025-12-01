@@ -22,6 +22,7 @@ urlpatterns = [
     path('manage-groups/', views.manage_groups, name='manage_groups'),
     path('leave-group/<int:group_id>/', views.leave_group, name='leave_group'),
     path('group-members/<int:group_id>/', views.view_group_members, name='group_members'),
+    path('download-report/<int:group_id>/', views.download_group_report, name='download_group_report'),
     
     # Expense management
     path('add-expense/', views.add_expense, name='add_expense'),
