@@ -15,6 +15,20 @@ urlpatterns = [
     path('login/', auth_views.LoginView.as_view(template_name='expenses/login.html'), name='login'),
     path('logout/', custom_logout, name='logout'),
     
+    # Password reset
+    path('password-reset/', 
+         auth_views.PasswordResetView.as_view(template_name='expenses/password_reset.html'),
+         name='password_reset'),
+    path('password-reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(template_name='expenses/password_reset_done.html'),
+         name='password_reset_done'),
+    path('password-reset-confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(template_name='expenses/password_reset_confirm.html'),
+         name='password_reset_confirm'),
+    path('password-reset-complete/', 
+         auth_views.PasswordResetCompleteView.as_view(template_name='expenses/password_reset_complete.html'),
+         name='password_reset_complete'),
+    
     # Group management
     path('group-options/', views.group_options, name='group_options'),
     path('create-group/', views.create_group, name='create_group'),
