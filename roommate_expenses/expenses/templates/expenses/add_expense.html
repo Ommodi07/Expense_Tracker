@@ -19,13 +19,92 @@
                 
                 <form method="POST">
                     {% csrf_token %}
-                    {{ form|crispy }}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+                    {% endif %}
+
+                    <div class="mb-3">{{ form.title.label_tag }} {{ form.title }}</div>
+                    <div class="mb-3">{{ form.amount.label_tag }} {{ form.amount }}</div>
+                    <div class="mb-3">{{ form.paid_by.label_tag }} {{ form.paid_by }}</div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Split Method</label>
+                        <div>
+                            {{ form.split_method }}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Shared Among</label>
+                        <div>
+                            {{ form.shared_among }}
+                        </div>
+                    </div>
+
+                    <div id="custom-splits-container" style="display:none; margin-top:1rem;">
+                        <h5>Custom amounts (must sum to total):</h5>
+                        <div class="list-group">
+                            {% for member in selected_group.members.all %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ member.username }}</strong>
+                                        {% if member == user %}<span class="badge bg-primary ms-2">You</span>{% endif %}
+                                    </div>
+                                    <div style="width: 160px;">
+                                        <input type="number" step="0.01" min="0" class="form-control custom-amount-input" name="custom_amount_{{ member.id }}" id="custom_amount_{{ member.id }}" placeholder="0.00" disabled>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-primary btn-lg">
                             <i class="fas fa-plus"></i> Add Expense
                         </button>
                     </div>
                 </form>
+
+                <script>
+                    (function(){
+                        function qs(selector, root) { return (root||document).querySelector(selector); }
+                        function qsa(selector, root) { return Array.from((root||document).querySelectorAll(selector)); }
+
+                        const container = document.getElementById('custom-splits-container');
+                        const splitRadios = qsa('input[name="split_method"]');
+                        const sharedCheckboxes = qsa('input[name="shared_among"]');
+
+                        function setCustomVisibility() {
+                            const custom = splitRadios.some(r => r.checked && r.value === 'custom');
+                            container.style.display = custom ? 'block' : 'none';
+                            // Enable or disable inputs based on checkboxes
+                            qsa('.custom-amount-input').forEach(input => input.disabled = !custom);
+                            if (custom) {
+                                // enable only those with corresponding checkbox checked
+                                sharedCheckboxes.forEach(cb => {
+                                    const id = cb.value;
+                                    const input = document.getElementById('custom_amount_' + id);
+                                    if (input) input.disabled = !cb.checked;
+                                });
+                            }
+                        }
+
+                        // listen for changes on split method radios
+                        splitRadios.forEach(r => r.addEventListener('change', setCustomVisibility));
+                        // listen for changes on shared checkboxes to toggle inputs when custom
+                        sharedCheckboxes.forEach(cb => cb.addEventListener('change', function(){
+                            const id = this.value;
+                            const input = document.getElementById('custom_amount_' + id);
+                            if (!input) return;
+                            if (qsa('input[name="split_method"]').some(r => r.checked && r.value === 'custom')) {
+                                input.disabled = !this.checked;
+                            }
+                        }));
+
+                        // initialize visibility on load
+                        setTimeout(setCustomVisibility, 50);
+                    })();
+                </script>
                 
                 <div class="divider" style="margin: 1.5rem 0; display: flex; align-items: center;">
                     <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>

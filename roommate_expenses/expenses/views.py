@@ -203,13 +203,59 @@ def add_expense(request):
     if request.method == 'POST':
         form = ExpenseForm(selected_group, request.POST)
         if form.is_valid():
+            # If custom split is chosen, validate provided custom amounts
+            split_method = form.cleaned_data.get('split_method')
+            if split_method == 'custom':
+                shared_users = form.cleaned_data.get('shared_among')
+                amounts = {}
+                total = Decimal('0.00')
+                for user in shared_users:
+                    key = f'custom_amount_{user.id}'
+                    raw = request.POST.get(key)
+                    if raw is None or raw.strip() == '':
+                        form.add_error(None, f"Please provide an amount for {user.username}.")
+                        break
+                    try:
+                        val = Decimal(raw)
+                    except Exception:
+                        form.add_error(None, f"Invalid amount for {user.username}.")
+                        break
+                    if val < 0:
+                        form.add_error(None, f"Amount for {user.username} must be non-negative.")
+                        break
+                    amounts[user.id] = val
+                    total += val
+
+                # If form has errors, re-render
+                if form.errors:
+                    context = {'form': form, 'selected_group': selected_group}
+                    return render(request, 'expenses/add_expense.html', context)
+
+                # Check totals match
+                if total != form.cleaned_data.get('amount'):
+                    form.add_error(None, "Sum of custom amounts must equal total expense amount.")
+                    context = {'form': form, 'selected_group': selected_group}
+                    return render(request, 'expenses/add_expense.html', context)
+
+            # Save expense
             expense = form.save(commit=False)
             expense.group = selected_group
             expense.save()
-            
             # Save the many-to-many relations
             form.save_m2m()
-            
+
+            # For custom split, create ExpenseShare entries with provided amounts
+            if form.cleaned_data.get('split_method') == 'custom':
+                for user in form.cleaned_data.get('shared_among'):
+                    amt = amounts.get(user.id, Decimal('0.00'))
+                    ExpenseShare.objects.update_or_create(
+                        expense=expense,
+                        user=user,
+                        defaults={'amount': amt, 'is_paid': (user == expense.paid_by)}
+                    )
+                # Remove any shares for users no longer selected
+                ExpenseShare.objects.filter(expense=expense).exclude(user__in=form.cleaned_data.get('shared_among')).delete()
+
             messages.success(request, f"Expense '{expense.title}' added!")
             return redirect(f'/?group={selected_group.id}')
     else:
@@ -252,7 +298,50 @@ def edit_expense(request, pk):
     if request.method == 'POST':
         form = ExpenseForm(expense.group, request.POST, instance=expense)
         if form.is_valid():
+            # Handle custom split validation when editing
+            split_method = form.cleaned_data.get('split_method')
+            if split_method == 'custom':
+                shared_users = form.cleaned_data.get('shared_among')
+                amounts = {}
+                total = Decimal('0.00')
+                for user in shared_users:
+                    key = f'custom_amount_{user.id}'
+                    raw = request.POST.get(key)
+                    if raw is None or raw.strip() == '':
+                        form.add_error(None, f"Please provide an amount for {user.username}.")
+                        break
+                    try:
+                        val = Decimal(raw)
+                    except Exception:
+                        form.add_error(None, f"Invalid amount for {user.username}.")
+                        break
+                    if val < 0:
+                        form.add_error(None, f"Amount for {user.username} must be non-negative.")
+                        break
+                    amounts[user.id] = val
+                    total += val
+
+                if form.errors:
+                    return render(request, 'expenses/edit_expense.html', {'form': form, 'expense': expense})
+
+                if total != form.cleaned_data.get('amount'):
+                    form.add_error(None, "Sum of custom amounts must equal total expense amount.")
+                    return render(request, 'expenses/edit_expense.html', {'form': form, 'expense': expense})
+
             form.save()
+
+            # For custom splits, update ExpenseShare records accordingly
+            if form.cleaned_data.get('split_method') == 'custom':
+                for user in form.cleaned_data.get('shared_among'):
+                    amt = amounts.get(user.id, Decimal('0.00'))
+                    ExpenseShare.objects.update_or_create(
+                        expense=expense,
+                        user=user,
+                        defaults={'amount': amt, 'is_paid': (user == expense.paid_by)}
+                    )
+                # Remove shares for users who are no longer part of shared_among
+                ExpenseShare.objects.filter(expense=expense).exclude(user__in=form.cleaned_data.get('shared_among')).delete()
+
             messages.success(request, f"Expense '{expense.title}' updated!")
             return redirect('expense_detail', pk=expense.pk)
     else:

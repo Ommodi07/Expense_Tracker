@@ -20,12 +20,69 @@
                 <form method="POST">
                     {% csrf_token %}
                     {{ form|crispy }}
+
+                    <div id="custom-splits-container" style="display:none; margin-top:1rem;">
+                        <h5>Custom amounts (must sum to total):</h5>
+                        <div class="list-group">
+                            {% for member in expense.group.members.all %}
+                                {% with share=expense.shares.filter(user=member).first %}
+                                <div class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div>
+                                        <strong>{{ member.username }}</strong>
+                                        {% if member == user %}<span class="badge bg-primary ms-2">You</span>{% endif %}
+                                    </div>
+                                    <div style="width: 160px;">
+                                        <input type="number" step="0.01" min="0" class="form-control custom-amount-input" name="custom_amount_{{ member.id }}" id="custom_amount_{{ member.id }}" placeholder="0.00" value="{% if share %}{{ share.amount }}{% endif %}" disabled>
+                                    </div>
+                                </div>
+                                {% endwith %}
+                            {% endfor %}
+                        </div>
+                    </div>
+
                     <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn btn-warning btn-lg">
                             <i class="fas fa-save"></i> Update Expense
                         </button>
                     </div>
                 </form>
+
+                <script>
+                    (function(){
+                        function qsa(selector, root) { return Array.from((root||document).querySelectorAll(selector)); }
+
+                        const container = document.getElementById('custom-splits-container');
+                        const splitRadios = qsa('input[name="split_method"]');
+                        const sharedCheckboxes = qsa('input[name="shared_among"]');
+
+                        function setCustomVisibility() {
+                            const custom = splitRadios.some(r => r.checked && r.value === 'custom');
+                            container.style.display = custom ? 'block' : 'none';
+                            // Enable or disable inputs based on checkboxes
+                            qsa('.custom-amount-input').forEach(input => input.disabled = !custom);
+                            if (custom) {
+                                // enable only those with corresponding checkbox checked
+                                sharedCheckboxes.forEach(cb => {
+                                    const id = cb.value;
+                                    const input = document.getElementById('custom_amount_' + id);
+                                    if (input) input.disabled = !cb.checked;
+                                });
+                            }
+                        }
+
+                        splitRadios.forEach(r => r.addEventListener('change', setCustomVisibility));
+                        sharedCheckboxes.forEach(cb => cb.addEventListener('change', function(){
+                            const id = this.value;
+                            const input = document.getElementById('custom_amount_' + id);
+                            if (!input) return;
+                            if (qsa('input[name="split_method"]').some(r => r.checked && r.value === 'custom')) {
+                                input.disabled = !this.checked;
+                            }
+                        }));
+
+                        setTimeout(setCustomVisibility, 50);
+                    })();
+                </script>
                 
                 <div class="divider" style="margin: 1.5rem 0; display: flex; align-items: center;">
                     <div style="flex: 1; border-bottom: 1px solid rgba(0,0,0,0.1);"></div>

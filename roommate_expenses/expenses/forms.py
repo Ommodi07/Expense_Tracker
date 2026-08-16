@@ -49,9 +49,10 @@ class GroupJoinForm(forms.Form):
 class ExpenseForm(forms.ModelForm):
     class Meta:
         model = Expense
-        fields = ['title', 'amount', 'paid_by', 'shared_among']
+        fields = ['title', 'amount', 'paid_by', 'split_method', 'shared_among']
         widgets = {
             'shared_among': forms.CheckboxSelectMultiple(),
+            'split_method': forms.RadioSelect(),
         }
     
     def __init__(self, group=None, *args, **kwargs):
@@ -61,3 +62,4 @@ class ExpenseForm(forms.ModelForm):
             group_members = group.members.all()
             self.fields['paid_by'].queryset = group_members
             self.fields['shared_among'].queryset = group_members
+            # Default split method choices are provided by the model; no extra handling needed here

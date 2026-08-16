@@ -27,6 +27,9 @@ def save_profile(sender, instance, created, **kwargs):
 def create_expense_shares(sender, instance, action, pk_set, **kwargs):
     """Automatically create ExpenseShare records when users are added to shared_among"""
     if action == "post_add":
+        # Only auto-create equal shares when expense is set to equal split
+        if getattr(instance, 'split_method', 'equal') != 'equal':
+            return
         num_people = instance.shared_among.count()
         if num_people > 0:
             amount_per_person = instance.amount / num_people
@@ -42,6 +45,9 @@ def create_expense_shares(sender, instance, action, pk_set, **kwargs):
                     }
                 )
     elif action == "post_remove":
+        # Only recalc equal split shares
+        if getattr(instance, 'split_method', 'equal') != 'equal':
+            return
         # Recalculate amounts for remaining users
         num_people = instance.shared_among.count()
         if num_people > 0:
@@ -58,6 +64,9 @@ def create_expense_shares(sender, instance, action, pk_set, **kwargs):
 def update_expense_shares_on_amount_change(sender, instance, created, **kwargs):
     """Recalculate ExpenseShare amounts when expense amount or paid_by changes"""
     if not created:
+        # Skip automatic recalculation for custom splits
+        if getattr(instance, 'split_method', 'equal') != 'equal':
+            return
         # Get all existing shares for this expense
         shares = instance.shares.all()
         num_people = shares.count()

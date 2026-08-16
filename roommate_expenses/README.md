@@ -1,5 +1,38 @@
 # Quick Start Guide
 
+## Run With Docker
+
+### Prerequisites
+
+- Install Docker Desktop (Windows)
+- Ensure Docker Desktop is running
+
+### Start the app
+
+```bash
+cd roommate_expenses
+docker compose up --build
+```
+
+The app will be available at:
+- http://localhost:8000
+
+The container startup command automatically runs:
+- `python manage.py migrate`
+- `python manage.py runserver 0.0.0.0:8000`
+
+### Stop the app
+
+```bash
+docker compose down
+```
+
+### Notes
+
+- Docker Compose reads environment variables from `.env`
+- Compose forces `DEBUG=True` for local container usage
+- If your external PostgreSQL is unavailable, update `DATABASE_URL` in `.env` or remove it to fallback to SQLite
+
 ## Email Verification Setup
 
 ### Testing Locally

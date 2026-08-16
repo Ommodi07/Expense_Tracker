@@ -62,6 +62,11 @@ class Expense(models.Model):
     paid_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='expenses_paid')
     date = models.DateField(auto_now_add=True)
     shared_among = models.ManyToManyField(User, related_name='shared_expenses')
+    SPLIT_METHOD_CHOICES = [
+        ('equal', 'Divide Equally'),
+        ('custom', 'Custom Split')
+    ]
+    split_method = models.CharField(max_length=10, choices=SPLIT_METHOD_CHOICES, default='equal')
     group = models.ForeignKey(Group, on_delete=models.CASCADE, related_name='expenses')
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -73,10 +78,13 @@ class Expense(models.Model):
     
     def get_split_amount(self):
         """Calculate amount per person"""
-        num_people = self.shared_among.count()
-        if num_people > 0:
-            return self.amount / num_people
-        return self.amount
+        # For equal split, return per-person amount. For custom splits, return None
+        if self.split_method == 'equal':
+            num_people = self.shared_among.count()
+            if num_people > 0:
+                return self.amount / num_people
+            return self.amount
+        return None
 
 class ExpenseShare(models.Model):
     """Tracks individual payment status for each user's share of an expense"""
