@@ -25,17 +25,15 @@
                         <h5>Custom amounts (must sum to total):</h5>
                         <div class="list-group">
                             {% for member in expense.group.members.all %}
-                                {% with share=expense.shares.filter(user=member).first %}
                                 <div class="list-group-item d-flex justify-content-between align-items-center">
                                     <div>
                                         <strong>{{ member.username }}</strong>
                                         {% if member == user %}<span class="badge bg-primary ms-2">You</span>{% endif %}
                                     </div>
                                     <div style="width: 160px;">
-                                        <input type="number" step="0.01" min="0" class="form-control custom-amount-input" name="custom_amount_{{ member.id }}" id="custom_amount_{{ member.id }}" placeholder="0.00" value="{% if share %}{{ share.amount }}{% endif %}" disabled>
+                                        <input type="number" step="0.01" min="0" class="form-control custom-amount-input" name="custom_amount_{{ member.id }}" id="custom_amount_{{ member.id }}" placeholder="0.00" disabled>
                                     </div>
                                 </div>
-                                {% endwith %}
                             {% endfor %}
                         </div>
                     </div>
