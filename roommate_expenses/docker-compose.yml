@@ -1,17 +1,42 @@
 services:
+  db:
+    image: postgres:16-alpine
+    container_name: roommate_expenses_db
+    environment:
+      POSTGRES_DB: roommate_expenses
+      POSTGRES_USER: roommate_expenses
+      POSTGRES_PASSWORD: roommate_expenses
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roommate_expenses -d roommate_expenses"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
   web:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: roommate_expenses_web
-    command: sh -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && gunicorn roommate_expenses.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     env_file:
       - .env
     environment:
-      DEBUG: "True"
-      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0"
+      DEBUG: "False"
+      ALLOWED_HOSTS: "localhost,127.0.0.1,0.0.0.0,ec2-*,*"
+      DATABASE_URL: "postgresql://roommate_expenses:roommate_expenses@db:5432/roommate_expenses"
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
-      - "8000:8000"
+      - "80:8000"
     volumes:
       - .:/app
     restart: unless-stopped
+
+volumes:
+  postgres_data:

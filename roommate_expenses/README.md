@@ -7,15 +7,22 @@
 - Install Docker Desktop (Windows)
 - Ensure Docker Desktop is running
 
-### Start the app
+### Start the app with local PostgreSQL
 
 ```bash
 cd roommate_expenses
 docker compose up --build
 ```
 
-The app will be available at:
-- http://localhost:8000
+This starts two services:
+- the Django app at http://localhost:8000
+- a local PostgreSQL database at localhost:5433
+
+The app is configured to use the local database automatically via:
+- `DATABASE_URL=postgresql://roommate_expenses:roommate_expenses@db:5432/roommate_expenses`
+
+If you connect from your host machine instead of inside Docker, use:
+- `postgresql://roommate_expenses:roommate_expenses@localhost:5433/roommate_expenses`
 
 The container startup command automatically runs:
 - `python manage.py migrate`
@@ -27,11 +34,17 @@ The container startup command automatically runs:
 docker compose down
 ```
 
+To remove the local database volume too:
+
+```bash
+docker compose down -v
+```
+
 ### Notes
 
 - Docker Compose reads environment variables from `.env`
 - Compose forces `DEBUG=True` for local container usage
-- If your external PostgreSQL is unavailable, update `DATABASE_URL` in `.env` or remove it to fallback to SQLite
+- The local PostgreSQL database is used by default in Docker; Neon is no longer required for local runs
 
 ## Email Verification Setup
 
