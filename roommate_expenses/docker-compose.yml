@@ -27,7 +27,7 @@ services:
       - .env
     environment:
       DEBUG: "True"
-      ALLOWED_HOSTS: "3.87.158.93,localhost,127.0.0.1,0.0.0.0"
+      ALLOWED_HOSTS: "174.129.131.243,localhost,127.0.0.1,0.0.0.0"
       DATABASE_URL: "postgresql://roommate_expenses:roommate_expenses@db:5432/roommate_expenses"
     depends_on:
       db:
